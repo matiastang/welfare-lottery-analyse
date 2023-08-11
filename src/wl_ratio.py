@@ -5,8 +5,8 @@
 Author: matiastang
 Date: 2023-07-06 11:14:59
 LastEditors: matiastang
-LastEditTime: 2023-08-10 16:04:26
-FilePath: /matias-TensorFlow/src/welfareLottery/wl_ratio.py
+LastEditTime: 2023-08-11 14:36:18
+FilePath: /welfare-lottery-analyse/src/wl_ratio.py
 Description: 比例
 '''
 
@@ -15,14 +15,31 @@ import pymysql
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
+from collections import Counter
 from utils.transform import transformReds
 from utils.check import checkLevelHistory
-import logging  
+import logging
+import math
 logging.basicConfig(level=logging.ERROR)
 
 print(mpl.__version__)
 
-mpl.rcParams['font.family'] = ['Hiragino Sans'] 
+mpl.rcParams['font.family'] = ['Hiragino Sans']
+  
+# n = 16  
+# k = 1 
+# combinations = math.comb(n, k)
+# probability = combinations / (n**k)
+redN = 33
+redK = 6
+redCombinations = math.comb(redN, redK)
+ 
+blueN = 16
+blueK = 1
+blueCombinations = math.comb(blueN, blueK)
+
+combinations = redCombinations * blueCombinations
+print(f'combinations={combinations}')
 
 # import matplotlib.font_manager as font_manager
 # # 打印所有可用字体  
@@ -87,7 +104,7 @@ connect = pymysql.connect(
 cursor = connect.cursor()
 
 data: List[Dict[str, Union[str, int, List[int]]]] = []
-
+# 获取历史
 try:
     # sql
     # sql = """
@@ -111,8 +128,10 @@ date = [item['date'] for item in data]
 dateReds = [np.mean(item['reds']) for item in data]
 # welfareLotteryAvgLine(date[:10], dateReds[:10])
 # welfareLotteryAvgLine(date, dateReds)
-print(f'total={len(data)}')
+print(f'already combinations={len(data)}')
+# 蓝球比例
 blueData = [item['blue'] for item in data]
+# 饼图
 # welfareLotteryRatioPie(blueData, range(1, 17))
 blueLen = len(blueData)
 # for i in range(1, 17):
@@ -125,9 +144,11 @@ for i in blueSortList:
     label = i['lable']
     count = i['count']
     ratio = i['ratio']
-    print(f'blue: {label} count={count} ratio={ratio}')
+    # print(f'blue: {label} count={count} ratio={ratio}')
+# 红球比例
 # 只有使用np.array创建的数组才能使用flatten函数进行降维
 redData = np.array([item['reds'] for item in data]).reshape(-1).tolist()
+# 饼图
 # welfareLotteryRatioPie(redData, range(1, 34))
 redLen = len(redData)
 # for i in range(1, 34):
@@ -140,7 +161,7 @@ for i in redSortList:
     label = i['lable']
     count = i['count']
     ratio = i['ratio']
-    print(f'red: {label} count={count} ratio={ratio}')
+    # print(f'red: {label} count={count} ratio={ratio}')
 # 02 05 13 22 27 32 01
 class History:  
     def __init__(self, code: str, date: str, reds: List[int], blue: int, leval: int):  
@@ -149,23 +170,83 @@ class History:
         self.blue = blue
         self.reds = reds
         self.leval = leval
-
-def winHistory(reds: List[int], blue: int):
+        
+    def __hash__(self):  
+        return hash((self.blue, tuple(self.reds)))
+        
+    def __eq__(self, other):  
+        if isinstance(other, History):
+            if self.blue != other.blue:
+                return False 
+            sReds = self.reds
+            oReds = other.reds
+            return set(sReds) == set(oReds)
+        return False  
+# 查询历史中奖等级
+def winHistory(historys: List[Dict[str, Union[str, int, List[int]]]], reds: List[int], blue: int):
     levals: List[History] = []
-    for item in data:
+    for item in historys:
         iBlue = item['blue']
         iReds: List[int] = item['reds']
         leval = checkLevelHistory(iReds, iBlue, reds, blue)
         if leval != 0:
             levals.append(History(item['code'], item['date'], iReds, iBlue, leval))
     return levals
-# levals = winHistory([2,5,13,22,27,32], 1)
+# levals = winHistory(data, [2,5,13,22,27,32], 1)
 # levals = winHistory([4,6,15,17,18,26], 11)
 # levals = winHistory([2,7,11,19,20,23], 8)
-levals = winHistory([16,20,22,26,30,32], 16)
+# levals = winHistory([16,20,22,26,30,32], 16)
+# levals = winHistory([3,12,24,25,32,33], 13)
+levals = winHistory(data, [14,6,22,1,9,19], 1)
+# levals = winHistory(data, [4,9,19,31,29,18], 11)
 for item in levals:
     if item.leval < 6:
         print(f'code={item.code} date={item.date} leval={item.leval}')
+arr = [item.leval for item in levals if item.leval < 6]
+print(f'leval total {len(arr)}')
+# 查询历史重复
+def repetitionHistory():
+    historys: List[History] = []
+    for item in data:
+        # if item['code'] == '2023092':
+        #     historys.append(History(item['code'], item['date'], item['reds'], item['blue'], 0))
+        historys.append(History(item['code'], item['date'], item['reds'], item['blue'], 0))
+    return [item for item, count in Counter(historys).items() if count > 1]
+repetitionList = repetitionHistory()
+if len(repetitionList) > 0:
+    print('历史重复：', len(repetitionList))
+    for item in repetitionList:
+        print(f'code={item.code} date={item.date} blue={item.blue} reds={item.reds} leval=1')
+else:
+    print('历史无重复')
+# 前历史次数及最高
+levalMin = 100
+levalMax = 0
+def repetitionLevalHistory():
+    global levalMin
+    global levalMax
+    # historys: List[History] = []
+    nums: List[int] = []
+    for i, item in enumerate(data[:100]):
+        code = item['code']
+        date = item['date']
+        reds = item['reds']
+        blue = item['blue']
+        # historys.append(History(code, date, reds, blue, 0))
+        levals = winHistory(data[i + 1:], reds, blue)
+        arr = [item.leval for item in levals if item.leval < 6]
+        num = len(arr)
+        nums.append(num)
+        if (num > levalMax):
+            levalMax = num
+        if (num < levalMin):
+            levalMin = num
+        # print(f'code={code} date={date} reds={reds} blue={blue} levals={arr}')
+        # print(f'code={code} leval len={len(levals)} leval < 6 len={len(arr)} levals={arr}')
+    return nums
+counts= repetitionLevalHistory()
+print(f'nums={counts}')
+print(f'min={levalMin}-{levalMax}=max')
 # 退出
 connect.close()
 cursor.close()
