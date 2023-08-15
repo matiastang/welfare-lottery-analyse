@@ -5,7 +5,7 @@
 Author: matiastang
 Date: 2023-07-06 11:14:59
 LastEditors: matiastang
-LastEditTime: 2023-08-15 11:59:10
+LastEditTime: 2023-08-15 14:08:01
 FilePath: /welfare-lottery-analyse/src/wl_ratio.py
 Description: 比例
 '''
@@ -199,7 +199,8 @@ def winHistory(historys: List[Dict[str, Union[str, int, List[int]]]], reds: List
 # levals = winHistory([3,12,24,25,32,33], 13)
 # levals = winHistory(data, [14,6,22,1,9,19], 1)
 # levals = winHistory(data, [4,9,19,31,29,18], 11)
-levals = winHistory(data, [10,21,24,25,27,32], 7)
+# levals = winHistory(data, [10,21,24,25,27,32], 7)
+levals = winHistory(data, [12,16,26,31,32,33], 6)
 for item in levals:
     if item.leval < 6:
         print(f'code={item.code} date={item.date} leval={item.leval}')
