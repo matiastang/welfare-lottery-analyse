@@ -5,7 +5,7 @@
 Author: matiastang
 Date: 2023-07-06 11:14:59
 LastEditors: matiastang
-LastEditTime: 2023-08-11 14:36:18
+LastEditTime: 2023-08-15 10:15:10
 FilePath: /welfare-lottery-analyse/src/wl_ratio.py
 Description: 比例
 '''
@@ -144,7 +144,7 @@ for i in blueSortList:
     label = i['lable']
     count = i['count']
     ratio = i['ratio']
-    # print(f'blue: {label} count={count} ratio={ratio}')
+    print(f'blue: {label} count={count} ratio={ratio}')
 # 红球比例
 # 只有使用np.array创建的数组才能使用flatten函数进行降维
 redData = np.array([item['reds'] for item in data]).reshape(-1).tolist()
@@ -161,7 +161,7 @@ for i in redSortList:
     label = i['lable']
     count = i['count']
     ratio = i['ratio']
-    # print(f'red: {label} count={count} ratio={ratio}')
+    print(f'red: {label} count={count} ratio={ratio}')
 # 02 05 13 22 27 32 01
 class History:  
     def __init__(self, code: str, date: str, reds: List[int], blue: int, leval: int):  
@@ -197,8 +197,9 @@ def winHistory(historys: List[Dict[str, Union[str, int, List[int]]]], reds: List
 # levals = winHistory([2,7,11,19,20,23], 8)
 # levals = winHistory([16,20,22,26,30,32], 16)
 # levals = winHistory([3,12,24,25,32,33], 13)
-levals = winHistory(data, [14,6,22,1,9,19], 1)
+# levals = winHistory(data, [14,6,22,1,9,19], 1)
 # levals = winHistory(data, [4,9,19,31,29,18], 11)
+levals = winHistory(data, [10,21,24,25,27,32], 7)
 for item in levals:
     if item.leval < 6:
         print(f'code={item.code} date={item.date} leval={item.leval}')
@@ -228,6 +229,7 @@ def repetitionLevalHistory():
     # historys: List[History] = []
     nums: List[int] = []
     for i, item in enumerate(data[:100]):
+    # for i, item in enumerate(data):
         code = item['code']
         date = item['date']
         reds = item['reds']
@@ -245,8 +247,92 @@ def repetitionLevalHistory():
         # print(f'code={code} leval len={len(levals)} leval < 6 len={len(arr)} levals={arr}')
     return nums
 counts= repetitionLevalHistory()
-print(f'nums={counts}')
+counts.sort()
+# print(f'nums={counts}')
 print(f'min={levalMin}-{levalMax}=max')
+index = int(len(counts) / 2)
+print(f'中位数={counts[index]}')
+avg = sum(counts)/len(counts)
+print(f'平均数={avg}')
+# 连续
+def continuousHistory():
+    continuous: List[Dict[str, Union[str, int]]] = []
+    maxIndex = len(data) - 1
+    continuousBlue = 0
+    continuousCount = 0
+    for i, item in enumerate(data[::-1]):
+        blue = item['blue']
+        if (continuousBlue != 0 and (continuousBlue != blue or i == maxIndex)):
+            if (continuousCount <= 1):
+                continuousBlue = blue
+                continuousCount = 1
+                continue
+            continuous.append({ 'code': item['code'], 'blue': continuousBlue, 'count': continuousCount })
+            continuousBlue = blue
+            continuousCount = 1
+        else:
+            if (continuousBlue == 0):
+                continuousBlue = blue
+            continuousCount += 1
+    return continuous
+continuous = continuousHistory()
+print(f'continuous len={len(continuous)}')
+for item in continuous:
+    code = item['code']
+    blue = item['blue']
+    count = item['count']
+    print(f'code={code} blue={blue} count={count}')
+    # if blue == 7:
+    #     print(f'code={code} blue={blue} count={count}')
+# 相似度
+def similarityHistory():
+    # similarity: List[Dict[str, int]] = []
+    similarity: List[int] = []
+    previousBlue = 0
+    for i, item in enumerate(data[::-1]):
+        blue = item['blue']
+        if previousBlue == 0:
+            previousBlue = blue
+            # similarity.append({ 'code': item['code'], 'value': 16 })
+            similarity.append(16)
+        else:
+            # similarity.append({ 'code': item['code'], 'value': abs(previousBlue - blue) })
+            similarity.append(abs(previousBlue - blue))
+            previousBlue = blue
+    return similarity
+similaritys = similarityHistory()
+similarityLen = len(similaritys)
+similarityList: List[Dict[str, Union[str, int]]] = [{'lable': i, 'count': similaritys.count(i), 'ratio': similaritys.count(i) / similarityLen} for i in range(0, 17)]
+similaritySortList = sorted(similarityList, key=lambda x: x['count'], reverse=True)
+for i in similaritySortList:
+    label = i['lable']
+    count = i['count']
+    ratio = i['ratio']
+    print(f'similarity: {label} count={count} ratio={ratio}')
+# next probability
+def nextProbabilityHistory(last: int):
+    probability: List[int] = []
+    previousIsLast = False
+    for i, item in enumerate(data[::-1]):
+        blue = item['blue']
+        if blue == last:
+            if (previousIsLast):
+                probability.append(blue)
+            previousIsLast = True
+            
+        else:
+            probability.append(blue)
+            previousIsLast = False
+    return probability
+probabilitys = nextProbabilityHistory(7)
+probabilityLen = len(probabilitys)
+probabilityList: List[Dict[str, Union[str, int]]] = [{'lable': i, 'count': probabilitys.count(i), 'ratio': probabilitys.count(i) / probabilityLen} for i in range(1, 17)]
+probabilitySortList = sorted(probabilityList, key=lambda x: x['count'], reverse=True)
+for i in probabilitySortList:
+    label = i['lable']
+    count = i['count']
+    ratio = i['ratio']
+    print(f'probability: {label} count={count} ratio={ratio}')
 # 退出
 connect.close()
 cursor.close()
