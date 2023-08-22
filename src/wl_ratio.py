@@ -5,7 +5,7 @@
 Author: matiastang
 Date: 2023-07-06 11:14:59
 LastEditors: matiastang
-LastEditTime: 2023-08-15 14:08:01
+LastEditTime: 2023-08-22 10:33:10
 FilePath: /welfare-lottery-analyse/src/wl_ratio.py
 Description: 比例
 '''
@@ -326,7 +326,8 @@ def nextProbabilityHistory(last: int):
             previousIsLast = False
     return probability
 # probabilitys = nextProbabilityHistory(7)
-probabilitys = nextProbabilityHistory(6)
+# probabilitys = nextProbabilityHistory(6)
+probabilitys = nextProbabilityHistory(15)
 probabilityLen = len(probabilitys)
 probabilityList: List[Dict[str, Union[str, int]]] = [{'lable': i, 'count': probabilitys.count(i), 'ratio': probabilitys.count(i) / probabilityLen} for i in range(1, 17)]
 probabilitySortList = sorted(probabilityList, key=lambda x: x['count'], reverse=True)
