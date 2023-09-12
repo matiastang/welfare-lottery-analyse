@@ -5,7 +5,7 @@
 Author: matiastang
 Date: 2023-07-06 11:14:59
 LastEditors: matiastang
-LastEditTime: 2023-08-22 10:33:10
+LastEditTime: 2023-09-12 15:34:29
 FilePath: /welfare-lottery-analyse/src/wl_ratio.py
 Description: 比例
 '''
@@ -200,7 +200,9 @@ def winHistory(historys: List[Dict[str, Union[str, int, List[int]]]], reds: List
 # levals = winHistory(data, [14,6,22,1,9,19], 1)
 # levals = winHistory(data, [4,9,19,31,29,18], 11)
 # levals = winHistory(data, [10,21,24,25,27,32], 7)
-levals = winHistory(data, [12,16,26,31,32,33], 6)
+# levals = winHistory(data, [12,16,26,31,32,33], 6)
+levals = winHistory(data, [1,5,9,15,18,26], 4)
+# levals = winHistory(data, [1,9,10,13,21,28], 10)
 for item in levals:
     if item.leval < 6:
         print(f'code={item.code} date={item.date} leval={item.leval}')
@@ -317,18 +319,25 @@ def nextProbabilityHistory(last: int):
     for i, item in enumerate(data[::-1]):
         blue = item['blue']
         if blue == last:
-            if (previousIsLast):
-                probability.append(blue)
+            if (i < len(data) - 1):
+                probability.append(data[i + 1]['blue'])
+            # if (previousIsLast):
+            #     probability.append(blue)
             previousIsLast = True
             
         else:
-            probability.append(blue)
+            # probability.append(blue)
             previousIsLast = False
     return probability
 # probabilitys = nextProbabilityHistory(7)
 # probabilitys = nextProbabilityHistory(6)
-probabilitys = nextProbabilityHistory(15)
+# probabilitys = nextProbabilityHistory(15)
+# probabilitys = nextProbabilityHistory(6)
+# probabilitys = nextProbabilityHistory(4)
+# probabilitys = nextProbabilityHistory(10)
+probabilitys = nextProbabilityHistory(16)
 probabilityLen = len(probabilitys)
+print(probabilityLen)
 probabilityList: List[Dict[str, Union[str, int]]] = [{'lable': i, 'count': probabilitys.count(i), 'ratio': probabilitys.count(i) / probabilityLen} for i in range(1, 17)]
 probabilitySortList = sorted(probabilityList, key=lambda x: x['count'], reverse=True)
 for i in probabilitySortList:
@@ -336,6 +345,14 @@ for i in probabilitySortList:
     count = i['count']
     ratio = i['ratio']
     print(f'probability: {label} count={count} ratio={ratio}')
+
+for i in probabilitySortList:
+    label = i['lable']
+    ratio = i['ratio']
+    
+    similaritys = [item['ratio'] for item in similaritySortList if item['lable'] == abs(16 - label)]
+    print(f'probability as similarity: {label} ratio={ratio + similaritys[0]}')    
+
 # 退出
 connect.close()
 cursor.close()
